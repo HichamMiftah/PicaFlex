@@ -3,19 +3,31 @@ FROM node:18-alpine as build
 
 WORKDIR /app
 
-COPY package.json ./
+# Copy package.json and yarn.lock to the working directory
+COPY package.json yarn.lock ./
 
+# Install dependencies
 RUN yarn install
 
+# Copy the rest of the application code
 COPY . ./
 
+# Build the application
 RUN yarn build
 
-# Stage 2: Serve
-FROM nginx:alpine
+# Stage 2: Production
+FROM node:18-alpine
 
-COPY --from=build /app/build
+WORKDIR /app
 
-EXPOSE 80
+# Copy the build output from the previous stage
+COPY --from=build /app/build ./build
 
-CMD ["yarn", "start"]
+# Install a simple HTTP server to serve the static files
+RUN yarn global add serve
+
+# Expose the port that the application will run on
+EXPOSE 3000
+
+# Command to run the application
+CMD ["serve", "-s", "build", "-l", "3000"]
